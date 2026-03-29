@@ -1,0 +1,313 @@
+/* ===== Setup Wizard ===== */
+.setup-wizard {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.setup-wizard__bg-orbs { position: absolute; inset: 0; pointer-events: none; }
+
+.setup-wizard__card {
+  width: 100%;
+  max-width: 680px;
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  padding: 44px 40px;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-color);
+  position: relative;
+  z-index: 1;
+  animation: fadeInUp 0.5s ease;
+}
+
+/* Progress bar */
+.setup-progress {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 32px;
+}
+
+.setup-progress__step {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.setup-progress__dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  border: 2px solid var(--gray-200);
+  background: var(--bg-card);
+  color: var(--text-muted);
+}
+
+.setup-progress__dot.active {
+  background: var(--primary-500);
+  border-color: var(--primary-500);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(59,143,252,0.2);
+}
+
+.setup-progress__dot.done {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+
+.setup-progress__line {
+  flex: 1;
+  height: 3px;
+  background: var(--gray-200);
+  border-radius: 3px;
+  margin: 0 6px;
+  transition: background 0.3s ease;
+}
+
+.setup-progress__line.done {
+  background: var(--success);
+}
+
+/* Step header */
+.setup-step__header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.setup-step__emoji {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.setup-step__header h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.setup-step__header p {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+/* Medicine form */
+.setup-med-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.setup-med-item {
+  background: var(--gray-50);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  animation: fadeInUp 0.3s ease;
+}
+
+.setup-med-item__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.setup-med-item__num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary-600);
+  background: var(--primary-50);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+
+.setup-med-item .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.setup-med-item .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setup-med-item .form-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.setup-med-item .form-input {
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+}
+
+.setup-med-item .form-input:focus {
+  border-color: var(--primary-400);
+  box-shadow: 0 0 0 3px rgba(59,143,252,0.12);
+}
+
+.setup-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--primary-300);
+  background: transparent;
+  color: var(--primary-600);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.setup-add-btn:hover {
+  background: var(--primary-50);
+  border-color: var(--primary-500);
+}
+
+/* Welcome step */
+.setup-welcome-features {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 24px 0;
+}
+
+.setup-welcome-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--gray-50);
+  border: 1px solid var(--border-color);
+}
+
+.setup-welcome-feature__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.2rem;
+}
+
+.setup-welcome-feature span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Actions */
+.setup-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.setup-actions .btn {
+  min-width: 140px;
+  justify-content: center;
+}
+
+/* Success animation */
+.setup-success {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.setup-success__check {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--success), #059669);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: #fff;
+  animation: fadeInUp 0.5s ease;
+}
+
+.setup-success h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.setup-success p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 24px;
+}
+
+/* Summary list */
+.setup-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.setup-summary__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--gray-50);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.setup-summary__item svg {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .setup-wizard__card {
+    padding: 28px 20px;
+  }
+  .setup-welcome-features {
+    grid-template-columns: 1fr;
+  }
+  .setup-med-item .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
