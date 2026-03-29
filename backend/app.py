@@ -11,7 +11,7 @@ load_dotenv()
 from flask import Flask, jsonify
 from flask_cors import CORS
 
-from db import init_database, get_engine
+from db import init_database, get_engine, get_engine_info
 from schema import init_schema, seed_data
 
 from routes.auth_routes import auth_bp
@@ -31,7 +31,8 @@ app.register_blueprint(delivery_bp, url_prefix='/api/delivery')
 
 @app.route('/api/health')
 def health():
-    return jsonify({'status': 'ok', 'engine': get_engine()})
+    info = get_engine_info()
+    return jsonify({'status': 'ok', **info})
 
 
 def main():

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { FiClock, FiPackage, FiTruck, FiShield, FiHeart, FiArrowRight, FiStar, FiUsers, FiCheck } from 'react-icons/fi'
+import { FiClock, FiPackage, FiTruck, FiShield, FiHeart, FiArrowRight, FiCheck } from 'react-icons/fi'
 import './Landing.css'
 
 const features = [
@@ -36,11 +36,7 @@ const stats = [
   { value: '4.9', label: 'User Rating' },
 ]
 
-const testimonials = [
-  { name: 'Margaret, 72', text: 'MediHelper reminds me to take my heart medication every morning. I no longer worry about forgetting!', stars: 5 },
-  { name: 'Dr. Patel', text: 'My elderly patients have shown 40% better medication adherence since using this platform.', stars: 5 },
-  { name: 'RamPharm Pharmacy', text: 'Managing inventory and fulfilling online orders has never been easier. Great for our business!', stars: 5 },
-]
+
 
 export default function Landing() {
   return (
@@ -55,7 +51,7 @@ export default function Landing() {
           <div className="landing-nav__links">
             <a href="#features">Features</a>
             <a href="#how">How It Works</a>
-            <a href="#testimonials">Reviews</a>
+
           </div>
           <div className="landing-nav__actions">
             <Link to="/login" className="btn btn--ghost">Log In</Link>
@@ -168,73 +164,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* User Roles */}
-      <section className="roles">
-        <div className="section-container">
-          <span className="section-eyebrow">Portals</span>
-          <h2 className="section-title">Built for <span className="gradient-text">Everyone</span></h2>
-          <div className="roles__grid">
-            <div className="role-card">
-              <div className="role-card__icon" style={{ background: 'linear-gradient(135deg, #3b8ffc, #2070f1)' }}>
-                <FiUsers size={28} />
-              </div>
-              <h3>For Patients</h3>
-              <ul>
-                <li><FiCheck size={14}/> Medication reminders</li>
-                <li><FiCheck size={14}/> Stock tracking</li>
-                <li><FiCheck size={14}/> One-tap ordering</li>
-                <li><FiCheck size={14}/> Delivery tracking</li>
-              </ul>
-              <Link to="/user" className="btn btn--primary btn--sm">Open Patient Portal</Link>
-            </div>
-            <div className="role-card role-card--featured">
-              <div className="role-card__icon" style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)' }}>
-                <FiPackage size={28} />
-              </div>
-              <h3>For Pharmacies</h3>
-              <ul>
-                <li><FiCheck size={14}/> Digital inventory</li>
-                <li><FiCheck size={14}/> Order management</li>
-                <li><FiCheck size={14}/> Sales analytics</li>
-                <li><FiCheck size={14}/> Customer insights</li>
-              </ul>
-              <Link to="/pharmacy" className="btn btn--accent btn--sm">Open Pharmacy Portal</Link>
-            </div>
-            <div className="role-card">
-              <div className="role-card__icon" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-                <FiTruck size={28} />
-              </div>
-              <h3>For Delivery</h3>
-              <ul>
-                <li><FiCheck size={14}/> Route optimization</li>
-                <li><FiCheck size={14}/> Real-time updates</li>
-                <li><FiCheck size={14}/> Earnings dashboard</li>
-                <li><FiCheck size={14}/> Delivery history</li>
-              </ul>
-              <Link to="/delivery" className="btn btn--success btn--sm">Open Delivery Portal</Link>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Testimonials */}
-      <section className="testimonials" id="testimonials">
-        <div className="section-container">
-          <span className="section-eyebrow">Testimonials</span>
-          <h2 className="section-title">Loved by <span className="gradient-text">Thousands</span></h2>
-          <div className="testimonials__grid">
-            {testimonials.map((t, i) => (
-              <div key={i} className="testimonial-card" style={{ animationDelay: `${i * 0.15}s` }}>
-                <div className="testimonial-card__stars">
-                  {[...Array(t.stars)].map((_, j) => <FiStar key={j} size={16} fill="#f59e0b" color="#f59e0b" />)}
-                </div>
-                <p>"{t.text}"</p>
-                <strong>{t.name}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* CTA */}
       <section className="landing-cta">
@@ -266,12 +196,7 @@ export default function Landing() {
               <a href="#how">How It Works</a>
               <a href="#testimonials">Reviews</a>
             </div>
-            <div>
-              <h4>Portals</h4>
-              <Link to="/user">Patient</Link>
-              <Link to="/pharmacy">Pharmacy</Link>
-              <Link to="/delivery">Delivery</Link>
-            </div>
+
             <div>
               <h4>Company</h4>
               <a href="#">About Us</a>

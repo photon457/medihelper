@@ -26,6 +26,29 @@ def before():
         return jsonify({'error': 'Insufficient permissions'}), 403
 
 
+def _enrich_delivery(d):
+    """JOIN customer data from orders → users and count items."""
+    order = query("""
+        SELECT o.address, u.name as customer_name, u.phone as customer_phone
+        FROM orders o
+        JOIN users u ON o.user_id = u.id
+        WHERE o.id = ?
+    """, [d['order_id']])
+    items_count_rows = query('SELECT COUNT(*) as cnt FROM order_items WHERE order_id = ?', [d['order_id']])
+
+    if order:
+        d['customer_name'] = order[0].get('customer_name', '')
+        d['customer_phone'] = order[0].get('customer_phone', '')
+        d['address'] = order[0].get('address', '')
+    else:
+        d['customer_name'] = ''
+        d['customer_phone'] = ''
+        d['address'] = ''
+
+    d['items_count'] = items_count_rows[0]['cnt'] if items_count_rows else 0
+    return d
+
+
 # ============= DASHBOARD =============
 @delivery_bp.route('/dashboard', methods=['GET'])
 def dashboard():
@@ -46,6 +69,9 @@ def dashboard():
             except ValueError:
                 pass
 
+        # Enrich active deliveries with customer data
+        enriched_active = [_enrich_delivery(dict(d)) for d in active]
+
         return jsonify({
             'stats': {
                 'activeDeliveries': len(active),
@@ -53,7 +79,7 @@ def dashboard():
                 'todayEarnings': today_earnings,
                 'distanceCovered': f'{total_dist:.1f} km',
             },
-            'activeDeliveries': active,
+            'activeDeliveries': enriched_active,
         })
     except Exception as e:
         print(f'Delivery dashboard error: {e}')
@@ -65,7 +91,7 @@ def dashboard():
 def active_deliveries():
     try:
         rows = query("SELECT * FROM deliveries WHERE driver_id=? AND status != 'delivered' ORDER BY created_at DESC", [g.user['id']])
-        return jsonify(rows)
+        return jsonify([_enrich_delivery(dict(d)) for d in rows])
     except Exception as e:
         return jsonify({'error': 'Failed to fetch active deliveries'}), 500
 
@@ -85,7 +111,6 @@ def update_status(did):
             now = datetime.utcnow().isoformat()
             run('UPDATE deliveries SET status=?, completed_at=?, earnings=? WHERE id=? AND driver_id=?',
                 [status, now, earnings, did, g.user['id']])
-            # Also mark order as delivered
             delivery = query('SELECT order_id FROM deliveries WHERE id=?', [did])
             if delivery:
                 run("UPDATE orders SET status='delivered' WHERE id=?", [delivery[0]['order_id']])
@@ -103,6 +128,6 @@ def update_status(did):
 def history():
     try:
         rows = query("SELECT * FROM deliveries WHERE driver_id=? AND status='delivered' ORDER BY completed_at DESC", [g.user['id']])
-        return jsonify(rows)
+        return jsonify([_enrich_delivery(dict(d)) for d in rows])
     except Exception as e:
         return jsonify({'error': 'Failed to fetch history'}), 500

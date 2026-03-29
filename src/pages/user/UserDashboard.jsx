@@ -6,7 +6,6 @@ import { useAuth } from '../../context/AuthContext'
 import { userAPI } from '../../services/api'
 import { useToast } from '../../components/Toast'
 import { SkeletonStatCards, SkeletonCard } from '../../components/Skeleton'
-import { useDoseNotifications } from '../../hooks/useDoseNotifications'
 import './UserPages.css'
 
 export default function UserDashboard() {
@@ -18,8 +17,7 @@ export default function UserDashboard() {
     typeof Notification !== 'undefined' ? Notification.permission : 'denied'
   )
 
-  // Activate dose notification + alarm system
-  const { overdueMeds, dismissAlarm, dismissAll } = useDoseNotifications()
+  // Dose notifications now handled globally in DashboardLayout
 
   useEffect(() => {
     userAPI.dashboard().then(r => setData(r.data)).catch(console.error).finally(() => setLoading(false))
@@ -115,39 +113,7 @@ export default function UserDashboard() {
         </div>
       )}
 
-      {/* Overdue Alarm Banner */}
-      {overdueMeds.length > 0 && (
-        <div style={{
-          background: 'rgba(239,68,68,0.08)', border: '2px solid rgba(239,68,68,0.4)',
-          borderRadius: 'var(--radius-lg)', padding: '16px 20px', marginBottom: '16px',
-          animation: 'pulse-alarm 1s ease infinite'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '1.4rem' }}>🔔</span>
-              <strong style={{ color: 'var(--danger)', fontSize: '1rem' }}>Overdue Doses!</strong>
-            </div>
-            <button className="btn btn--sm" onClick={dismissAll}
-              style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--danger)', border: '1px solid rgba(239,68,68,0.3)' }}>
-              Dismiss All
-            </button>
-          </div>
-          {overdueMeds.map(med => (
-            <div key={med.key} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '8px 12px', background: 'rgba(239,68,68,0.04)', borderRadius: 'var(--radius-md)', marginBottom: '6px'
-            }}>
-              <div>
-                <strong>{med.medicine_name}</strong>
-                <span style={{ color: 'var(--text-muted)', marginLeft: '8px', fontSize: '0.85rem' }}>
-                  {med.dosage} · Scheduled at {med.timeStr}
-                </span>
-              </div>
-              <button className="btn btn--sm btn--ghost" onClick={() => dismissAlarm(med.key)}>Dismiss</button>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Overdue alarm is now handled by the global AlarmOverlay in DashboardLayout */}
 
       <div className="stats-grid">
         <StatCard icon={FiClock} label="Today's Doses" value={`${stats.dosesTaken} / ${stats.totalDosesToday}`} color="primary" trend={`${stats.totalDosesToday - stats.dosesTaken} remaining`} />
@@ -157,56 +123,93 @@ export default function UserDashboard() {
       </div>
 
       <div className="dashboard-grid">
-        {/* Today's Doses — time-based */}
+        {/* Today's Doses — time-based per slot */}
         <div className="card">
           <div className="card-header">
             <h2 className="card-title"><FiClock size={18} /> Today's Schedule</h2>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Take within ±30 min of scheduled time</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Each dose tracked individually</span>
           </div>
           <div className="upcoming-meds">
             {upcomingMeds.length === 0 && <p style={{ color: 'var(--text-muted)', padding: '12px' }}>No medicines scheduled today</p>}
-            {upcomingMeds.map((med, i) => {
-              const doseTime = (med.times || [])[0] || ''
-              const timeStatus = getTimeStatus(doseTime)
-              const canTake = !med.takenToday && timeStatus === 'active'
+            {upcomingMeds.flatMap((med) =>
+              (med.doseSlots || []).map((slot, si) => {
+                const timeStatus = slot.taken ? slot.status : getTimeStatus(slot.adjustedTime || slot.time)
+                const isMissed = !slot.taken && timeStatus === 'missed'
+                const isActive = !slot.taken && timeStatus === 'active'
+                const isLate = slot.status === 'taken_late'
+                const displayTime = slot.adjustedTime && slot.adjustedTime !== slot.time
+                  ? slot.adjustedTime : slot.time
+                const wasShifted = slot.adjustedTime && slot.adjustedTime !== slot.time && !slot.taken
 
-              return (
-                <div key={i} className="med-item">
-                  <div className="med-item__time" style={{
-                    color: timeStatus === 'active' ? 'var(--primary-600)' : timeStatus === 'missed' ? 'var(--danger)' : 'var(--text-muted)',
-                    fontWeight: timeStatus === 'active' ? 700 : 500
-                  }}>{doseTime}</div>
-                  <div className="med-item__info">
-                    <strong>{med.medicine_name}</strong>
-                    <span className="med-item__type">{med.dosage} · {med.frequency}</span>
-                  </div>
-                  {med.takenToday ? (
-                    <span className="btn btn--sm" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)', border: '1px solid rgba(16,185,129,0.3)', cursor: 'default', pointerEvents: 'none' }}>
-                      ✓ Taken
-                    </span>
-                  ) : canTake ? (
-                    <button className="btn btn--primary btn--sm" onClick={() => {
-                      userAPI.takeDose(med.id).then(() => {
-                        setData(prev => ({
-                          ...prev,
-                          stats: { ...prev.stats, dosesTaken: Math.min(prev.stats.dosesTaken + 1, prev.stats.totalDosesToday) },
-                          upcomingMeds: prev.upcomingMeds.map(m => m.id === med.id ? { ...m, takenToday: true } : m)
-                        }))
-                        toast(`${med.medicine_name} dose taken ✓`, 'success')
-                      }).catch(() => toast('Already taken today', 'info'))
-                    }}>Take Now</button>
-                  ) : (
-                    <span className="btn btn--sm" style={{
-                      background: timeStatus === 'missed' ? 'rgba(239,68,68,0.08)' : 'rgba(107,114,128,0.08)',
-                      color: timeStatus === 'missed' ? 'var(--danger)' : 'var(--text-muted)',
-                      border: `1px solid ${timeStatus === 'missed' ? 'rgba(239,68,68,0.2)' : 'rgba(107,114,128,0.2)'}`,
-                      cursor: 'default', pointerEvents: 'none', fontSize: '0.78rem'
+                return (
+                  <div key={`${med.id}-${si}`} className="med-item">
+                    <div className="med-item__time" style={{
+                      color: isLate ? '#f59e0b' : slot.taken ? 'var(--success)' : isMissed ? 'var(--danger)' : isActive ? 'var(--primary-600)' : 'var(--text-muted)',
+                      fontWeight: isActive || isMissed ? 700 : 500
                     }}>
-                      {timeStatus === 'missed' ? '⏰ Missed' : '🕐 Not yet'}
-                    </span>
-                  )}
-                </div>
-              )
+                      {displayTime}
+                      {wasShifted && (
+                        <span style={{ display: 'block', fontSize: '0.65rem', color: '#f59e0b', fontWeight: 400 }}>
+                          shifted from {slot.time}
+                        </span>
+                      )}
+                    </div>
+                    <div className="med-item__info">
+                      <strong>{med.medicine_name}</strong>
+                      <span className="med-item__type">{med.dosage} · {med.frequency}</span>
+                    </div>
+                    {slot.taken ? (
+                      <span className="btn btn--sm" style={{
+                        background: isLate ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)',
+                        color: isLate ? '#f59e0b' : 'var(--success)',
+                        border: `1px solid ${isLate ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)'}`,
+                        cursor: 'default', pointerEvents: 'none'
+                      }}>
+                        {isLate ? `⏰ Taken Late (+${slot.delayMinutes}m)` : '✓ Taken'}
+                      </span>
+                    ) : isMissed ? (
+                      <button className="btn btn--sm" style={{
+                        background: 'rgba(245,158,11,0.1)', color: '#f59e0b',
+                        border: '1px solid rgba(245,158,11,0.3)'
+                      }} onClick={() => {
+                        userAPI.takeDose(med.id, slot.time).then((res) => {
+                          const r = res.data
+                          toast(
+                            r.status === 'taken_late'
+                              ? `${med.medicine_name} taken late (+${r.delayMinutes}m). Later doses adjusted.`
+                              : `${med.medicine_name} dose taken ✓`,
+                            r.status === 'taken_late' ? 'warning' : 'success'
+                          )
+                          // Reload dashboard to get adjusted times
+                          userAPI.dashboard().then(d => setData(d.data))
+                        }).catch(() => toast('Already taken', 'info'))
+                      }}>
+                        ⏰ Take Late
+                      </button>
+                    ) : isActive ? (
+                      <button className="btn btn--primary btn--sm" onClick={() => {
+                        userAPI.takeDose(med.id, slot.time).then((res) => {
+                          toast(`${med.medicine_name} dose taken ✓`, 'success')
+                          userAPI.dashboard().then(d => setData(d.data))
+                        }).catch(() => toast('Already taken', 'info'))
+                      }}>Take Now</button>
+                    ) : (
+                      <span className="btn btn--sm" style={{
+                        background: 'rgba(107,114,128,0.08)', color: 'var(--text-muted)',
+                        border: '1px solid rgba(107,114,128,0.2)',
+                        cursor: 'default', pointerEvents: 'none', fontSize: '0.78rem'
+                      }}>
+                        🕐 Not yet
+                      </span>
+                    )}
+                  </div>
+                )
+              })
+            ).sort((a, b) => {
+              // Sort by time
+              const tA = a.props.children[0]?.props?.children?.[0] || ''
+              const tB = b.props.children[0]?.props?.children?.[0] || ''
+              return String(tA).localeCompare(String(tB))
             })}
           </div>
         </div>

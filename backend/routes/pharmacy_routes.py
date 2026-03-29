@@ -26,13 +26,35 @@ def before():
         return jsonify({'error': 'Insufficient permissions'}), 403
 
 
-def _parse_items(val):
-    if isinstance(val, str):
-        try:
-            return json.loads(val)
-        except Exception:
-            return []
-    return val
+# ─────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────
+def _inv_status(stock):
+    if stock > 50:
+        return 'good'
+    elif stock > 10:
+        return 'low'
+    return 'critical'
+
+
+def _get_order_items(order_id):
+    return query('SELECT name, qty, price FROM order_items WHERE order_id = ?', [order_id])
+
+
+def _get_or_create_category(name):
+    rows = query('SELECT id FROM categories WHERE name = ?', [name])
+    if rows:
+        return rows[0]['id']
+    return insert('INSERT INTO categories (name) VALUES (?)', [name])
+
+
+def _get_or_create_supplier(name):
+    if not name:
+        return None
+    rows = query('SELECT id FROM suppliers WHERE name = ?', [name])
+    if rows:
+        return rows[0]['id']
+    return insert('INSERT INTO suppliers (name) VALUES (?)', [name])
 
 
 # ============= DASHBOARD =============
@@ -41,13 +63,29 @@ def dashboard():
     try:
         pid = g.user['id']
         orders = query('SELECT * FROM orders WHERE pharmacy_id = ? ORDER BY created_at DESC', [pid])
-        inventory = query('SELECT * FROM pharmacy_inventory WHERE pharmacy_id = ?', [pid])
+        inventory = query("""
+            SELECT pi.*, c.name as category, s.name as supplier
+            FROM pharmacy_inventory pi
+            JOIN categories c ON pi.category_id = c.id
+            LEFT JOIN suppliers s ON pi.supplier_id = s.id
+            WHERE pi.pharmacy_id = ?
+        """, [pid])
 
         from datetime import date
         today = date.today().isoformat()
         today_orders = [o for o in orders if o.get('created_at', '') and str(o['created_at']).startswith(today)]
         today_revenue = sum(float(o['total']) for o in today_orders)
+
+        # Compute status for inventory
+        for i in inventory:
+            i['status'] = _inv_status(i['stock'])
         low_stock = [i for i in inventory if i['status'] in ('low', 'critical')]
+
+        # Build order items for recent orders
+        recent_orders = []
+        for o in orders[:10]:
+            items = _get_order_items(o['id'])
+            recent_orders.append({**o, 'items': items})
 
         return jsonify({
             'stats': {
@@ -56,7 +94,7 @@ def dashboard():
                 'totalProducts': len(inventory),
                 'lowStockCount': len(low_stock),
             },
-            'recentOrders': [{**o, 'items': _parse_items(o['items'])} for o in orders[:10]],
+            'recentOrders': recent_orders,
             'lowStockItems': low_stock,
         })
     except Exception as e:
@@ -68,7 +106,16 @@ def dashboard():
 @pharmacy_bp.route('/inventory', methods=['GET'])
 def get_inventory():
     try:
-        rows = query('SELECT * FROM pharmacy_inventory WHERE pharmacy_id = ? ORDER BY name', [g.user['id']])
+        rows = query("""
+            SELECT pi.*, c.name as category, s.name as supplier
+            FROM pharmacy_inventory pi
+            JOIN categories c ON pi.category_id = c.id
+            LEFT JOIN suppliers s ON pi.supplier_id = s.id
+            WHERE pi.pharmacy_id = ?
+            ORDER BY pi.name
+        """, [g.user['id']])
+        for r in rows:
+            r['status'] = _inv_status(r['stock'])
         return jsonify(rows)
     except Exception as e:
         return jsonify({'error': 'Failed to fetch inventory'}), 500
@@ -87,12 +134,16 @@ def add_product():
         if not name or not category:
             return jsonify({'error': 'name and category are required'}), 400
 
-        status = 'good' if stock > 50 else ('low' if stock > 10 else 'critical')
+        cat_id = _get_or_create_category(category)
+        sup_id = _get_or_create_supplier(supplier)
+
         pid = insert(
-            'INSERT INTO pharmacy_inventory (pharmacy_id, name, category, stock, price, supplier, status) VALUES (?,?,?,?,?,?,?)',
-            [g.user['id'], name, category, stock, price, supplier, status]
+            'INSERT INTO pharmacy_inventory (pharmacy_id, name, category_id, stock, price, supplier_id) VALUES (?,?,?,?,?,?)',
+            [g.user['id'], name, cat_id, stock, price, sup_id]
         )
-        return jsonify({'id': pid, 'name': name, 'category': category, 'stock': stock, 'price': price, 'supplier': supplier, 'status': status}), 201
+        status = _inv_status(stock)
+        return jsonify({'id': pid, 'name': name, 'category': category, 'stock': stock,
+                        'price': price, 'supplier': supplier, 'status': status}), 201
     except Exception as e:
         return jsonify({'error': 'Failed to add product'}), 500
 
@@ -102,11 +153,15 @@ def update_product(pid):
     try:
         data = request.get_json()
         stock = data.get('stock', 0)
-        status = 'good' if stock > 50 else ('low' if stock > 10 else 'critical')
+        category = data.get('category', '')
+        supplier = data.get('supplier', '')
+
+        cat_id = _get_or_create_category(category)
+        sup_id = _get_or_create_supplier(supplier)
+
         run(
-            'UPDATE pharmacy_inventory SET name=?, category=?, stock=?, price=?, supplier=?, status=? WHERE id=? AND pharmacy_id=?',
-            [data.get('name',''), data.get('category',''), stock, data.get('price',0),
-             data.get('supplier',''), status, pid, g.user['id']]
+            'UPDATE pharmacy_inventory SET name=?, category_id=?, stock=?, price=?, supplier_id=? WHERE id=? AND pharmacy_id=?',
+            [data.get('name', ''), cat_id, stock, data.get('price', 0), sup_id, pid, g.user['id']]
         )
         return jsonify({'success': True})
     except Exception as e:
@@ -127,13 +182,19 @@ def delete_product(pid):
 def get_orders():
     try:
         rows = query("""
-            SELECT o.*, u.name as customer_name, u.phone as customer_phone, u.address as customer_address
+            SELECT o.*, u.name as customer_name, u.phone as customer_phone,
+                   up.address as customer_address
             FROM orders o
             JOIN users u ON o.user_id = u.id
+            LEFT JOIN user_profiles up ON u.id = up.user_id
             WHERE o.pharmacy_id = ?
             ORDER BY o.created_at DESC
         """, [g.user['id']])
-        return jsonify([{**o, 'items': _parse_items(o['items'])} for o in rows])
+        result = []
+        for o in rows:
+            items = _get_order_items(o['id'])
+            result.append({**o, 'items': items})
+        return jsonify(result)
     except Exception as e:
         return jsonify({'error': 'Failed to fetch orders'}), 500
 
@@ -157,12 +218,10 @@ def update_order_status(oid):
                 drivers = query("SELECT id FROM users WHERE role='delivery' LIMIT 1")
                 if drivers:
                     driver_id = drivers[0]['id']
-                    cust_rows = query('SELECT name, phone FROM users WHERE id=?', [order['user_id']])
-                    cust = cust_rows[0] if cust_rows else {'name': '', 'phone': ''}
-                    items = _parse_items(order['items'])
+                    items = _get_order_items(order['id'])
                     insert(
-                        'INSERT INTO deliveries (order_id, driver_id, customer_name, customer_phone, address, items_count, distance, eta, status) VALUES (?,?,?,?,?,?,?,?,?)',
-                        [order['id'], driver_id, cust['name'], cust['phone'], order.get('address',''), len(items), '3.5 km', '20 min', 'assigned']
+                        'INSERT INTO deliveries (order_id, driver_id, distance, eta, status) VALUES (?,?,?,?,?)',
+                        [order['id'], driver_id, '3.5 km', '20 min', 'assigned']
                     )
                     run('UPDATE orders SET delivery_id=? WHERE id=?', [driver_id, order['id']])
 
@@ -178,7 +237,12 @@ def analytics():
     try:
         pid = g.user['id']
         orders = query("SELECT * FROM orders WHERE pharmacy_id=? AND status='delivered'", [pid])
-        inventory = query('SELECT * FROM pharmacy_inventory WHERE pharmacy_id=?', [pid])
+        inventory = query("""
+            SELECT pi.*, c.name as category
+            FROM pharmacy_inventory pi
+            JOIN categories c ON pi.category_id = c.id
+            WHERE pi.pharmacy_id = ?
+        """, [pid])
 
         total_revenue = sum(float(o['total']) for o in orders)
 
