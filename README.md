@@ -42,18 +42,26 @@ pip install -r requirements.txt
 #### Option A — MySQL (recommended)
 
 1. Make sure MySQL 8.0 is installed and the service is running.
-2. Edit (or create) `backend/.env`:
+2. Copy the example env file and edit it:
+
+```bash
+cd backend
+copy .env.example .env        # Windows
+# cp .env.example .env        # Mac/Linux
+```
+
+3. Open `backend/.env` and set **your MySQL password**:
 
 ```env
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_USER=root
-MYSQL_PASSWORD=root
+MYSQL_PASSWORD=YOUR_MYSQL_PASSWORD_HERE    ← change this
 MYSQL_DATABASE=medihelper
 JWT_SECRET=medihelper-jwt-secret-key-2026
 ```
 
-> **Note:** Change `MYSQL_USER` and `MYSQL_PASSWORD` to match the local MySQL credentials. The database will be **auto-created** on first run — no manual SQL needed.
+> **Note:** The database will be **auto-created** on first run — no manual SQL needed. Only the password needs to match your local MySQL setup.
 
 #### Option B — SQLite (zero setup)
 
