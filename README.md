@@ -6,12 +6,33 @@ Built with **React + Vite** (frontend) and **Flask + MySQL** (backend).
 
 ---
 
+## 🚀 Quick Start (One Command)
+
+> **Don't want to set up manually?** Just double-click the batch file!
+
+```bash
+start.bat
+```
+
+This single script will:
+1. ✅ Check that Node.js, Python, and pip are installed
+2. 📦 Install all backend (pip) and frontend (npm) dependencies
+3. ⚙️ Create the `.env` config file if it doesn't exist
+4. 🖥️ Start the backend server (Flask) in a new window
+5. 🌐 Start the frontend server (Vite) in a new window
+6. 🔗 Open `http://localhost:5173` in your browser automatically
+
+> **Note:** If you have MySQL running, edit `backend\.env` with your password before running. If you don't have MySQL, no worries — it will use SQLite automatically.
+
+---
+
 ## 📑 Table of Contents
 
+- [Quick Start](#-quick-start-one-command)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
 - [Prerequisites](#-prerequisites)
-- [Project Setup](#-project-setup)
+- [Manual Setup](#-manual-setup)
   - [1. Clone the Repository](#1-clone-the-repository)
   - [2. Backend Setup](#2-backend-setup)
   - [3. Frontend Setup](#3-frontend-setup)
@@ -71,7 +92,7 @@ Make sure the following are installed on your system:
 
 ---
 
-## 🚀 Project Setup
+## 🔧 Manual Setup
 
 ### 1. Clone the Repository
 
@@ -248,6 +269,7 @@ medihelper/
 ├── package.json                # Node dependencies & scripts
 ├── vite.config.js              # Vite configuration (proxy, port)
 ├── index.html                  # HTML entry point
+├── start.bat                   # One-click setup & run script (Windows)
 └── README.md                   # This file
 ```
 
